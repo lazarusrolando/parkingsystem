@@ -1,0 +1,156 @@
+.cb {
+  height: 75vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bc {
+  height: 100%;
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 18px;
+  margin-top: -5px;
+}
+
+.auth-toggle {
+  position: relative;
+  width: 400px;
+  display: flex;
+  margin-top: -20px;
+  margin-bottom: 20px;
+  background: #111;
+  border-radius: 30px;
+  box-shadow: 0 0 10px #00ffff88;
+}
+
+.auth-toggle button {
+  flex: 1;
+  padding: 20px 10px;
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.auth-toggle button.active {
+  color: #000;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 50px;
+  height: 100%;
+  transition: transform 0.4s ease;
+}
+
+.toggle-slider.move {
+  transform: translateX(100%);
+}
+
+.form-box {
+  width: 50%;
+  max-width: 800px;
+  height: 550px; 
+  background: #000;
+  border-radius: 18px;
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.4),
+    0 0 40px rgba(0, 255, 255, 0.2);
+  padding: 0;
+  overflow: hidden;
+}
+
+.form-container.full {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.forms {
+  width: 200%;
+  height: 100%;
+  display: flex;
+  transition: transform 0.6s ease;
+}
+
+.wrapper.right-panel-active .forms {
+  transform: translateX(-50%);
+}
+
+.form {
+  width: 50%;
+  height: 100%;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* TEXT */
+.panel-title {
+  color: #00ffff;
+  font-size: 38px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #00ffff;
+}
+
+.subtitle {
+  color: #aaa;
+  margin-bottom: 25px;
+}
+
+/* INPUTS */
+.input-group {
+  width: 100%;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: mspace-between;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px;
+  background: #111;
+  border: 1px solid #00ffff44;
+  color: #fff;
+  border-radius: 6px;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #00ffff;
+  box-shadow: 0 0 5px #00ffff88;
+}
+
+/* BUTTON */
+.sign-in-button {
+  width: 60%;
+  align-self: center;
+  padding: 14px;
+  margin-top: 10px;
+  background: linear-gradient(45deg, #00ffff, #39ffb5);
+  border: none;
+  border-radius: 30px;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
+}
+
+.sign-in-button:hover {
+  transform: scale(1.05);
+}
+
+/* LINKS */
+.forgot-password {
+  color: #00ffff;
+  text-align: center;
+  margin-bottom: 20px;
+  text-decoration: none;
+}

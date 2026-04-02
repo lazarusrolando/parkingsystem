@@ -1,0 +1,44 @@
+{
+     "vehicles": [
+          {
+               "vin": "5842731",
+               "make": "Honda",
+               "model": "Accord",
+               "year": 2003,
+               "type": "Sedan",
+               "parkingStatus": "Available",
+               "location": "Phoenix Mall",
+               "plate": "TN-01-AA-1234"
+          },
+          {
+               "vin": "7391846",
+               "make": "Tesla",
+               "model": "Model S",
+               "year": 2020,
+               "type": "Electric",
+               "parkingStatus": "Reserved",
+               "location": "AXA Corporate Parking",
+               "plate": "TN-02-BB-5678"
+          },
+          {
+               "vin": "4629058",
+               "make": "Ford",
+               "model": "Focus",
+               "year": 2018,
+               "type": "Hatchback",
+               "parkingStatus": "Available",
+               "location": "Emar Plain Drive",
+               "plate": "TN-03-CC-9012"
+          },
+          {
+               "vin": "9183642",
+               "make": "Volkswagen",
+               "model": "Jetta",
+               "year": 2000,
+               "type": "Sedan",
+               "parkingStatus": "Occupied",
+               "location": "Gurugram Central",
+               "plate": "TN-04-DD-3456"
+          }
+     ]
+}

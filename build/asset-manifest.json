@@ -1,0 +1,21 @@
+{
+  "files": {
+    "main.css": "/static/css/main.543ad096.css",
+    "main.js": "/static/js/main.16224125.js",
+    "static/js/453.3059096e.chunk.js": "/static/js/453.3059096e.chunk.js",
+    "static/media/pay.png": "/static/media/pay.6587df8cb4a4894d13ac.png",
+    "static/media/search.png": "/static/media/search.06a39683542d7a1c63c3.png",
+    "static/media/parkgo.png": "/static/media/parkgo.e79ac95449f990fc35b0.png",
+    "static/media/reservespot.png": "/static/media/reservespot.799e496225fa381fe125.png",
+    "static/media/sps-IoT.png": "/static/media/sps-IoT.d6fbb93de4ad0b2a95e8.png",
+    "static/media/sps.png": "/static/media/sps.c19b9559a76d045bed19.png",
+    "index.html": "/index.html",
+    "main.543ad096.css.map": "/static/css/main.543ad096.css.map",
+    "main.16224125.js.map": "/static/js/main.16224125.js.map",
+    "453.3059096e.chunk.js.map": "/static/js/453.3059096e.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.543ad096.css",
+    "static/js/main.16224125.js"
+  ]
+}

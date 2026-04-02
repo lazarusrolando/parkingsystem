@@ -1,0 +1,197 @@
+* {
+     margin: 0;
+     padding: 0;
+     box-sizing: border-box;
+     font-family: 'Poppins', sans-serif;
+}
+
+body {
+     background: linear-gradient(120deg, #0f2027, #203a43, #2c5364);
+     color: #ffffff;
+     overflow-x: hidden;
+}
+
+body::before {
+     content: '';
+     position: fixed;
+     top: 0;
+     left: 0;
+     width: 100%;
+     height: 100%;
+     background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.7));
+     pointer-events: none;
+     z-index: -1;
+}
+
+.Features {
+     min-height: 100vh;
+     animation: fadeInApp 1.2s ease-in-out forwards;
+}
+
+@keyframes fadeInApp {
+     from {
+          opacity: 0;
+          transform: scale(0.98);
+     }
+
+     to {
+          opacity: 1;
+          transform: scale(1);
+     }
+}
+
+.features-hero-section {
+     padding: 100px 80px;
+     text-align: center;
+}
+
+.features-hero-content h1 {
+     font-size: 3rem;
+     margin-bottom: 20px;
+     color: #00e5ff;
+}
+
+.features-hero-content p {
+     font-size: 1.1rem;
+     line-height: 1.6;
+     color: #dddddd;
+     max-width: 600px;
+     margin: 0 auto;
+}
+
+.features-grid-section {
+     padding: 100px 80px;
+     text-align: center;
+}
+
+.features-grid {
+     display: grid;
+     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+     gap: 30px;
+     margin-top: 50px;
+}
+
+.feature-card {
+     background: rgba(255, 255, 255, 0.1);
+     padding: 30px;
+     border-radius: 10px;
+     backdrop-filter: blur(10px);
+     border: 1px solid rgba(255, 255, 255, 0.2);
+     transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+     transform: translateY(-10px);
+     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.feature-card h3 {
+     font-size: 1.5rem;
+     margin-bottom: 15px;
+     color: #00e5ff;
+}
+
+.feature-card p {
+     font-size: 1rem;
+     line-height: 1.6;
+     color: #dddddd;
+}
+
+.container {
+     max-width: 1200px;
+     margin: 0 auto;
+     padding: 0 20px;
+}
+
+.animate-on-scroll {
+     opacity: 0;
+     transform: translateY(30px);
+     transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.animate-on-scroll.visible {
+     animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInUp {
+     from {
+          opacity: 0;
+          transform: translateY(30px);
+     }
+
+     to {
+          opacity: 1;
+          transform: translateY(0);
+     }
+}
+
+/* Staggered animations for feature cards */
+.features-grid .feature-card:nth-child(1) {
+     transition-delay: 0.1s;
+}
+
+.features-grid .feature-card:nth-child(2) {
+     transition-delay: 0.2s;
+}
+
+.features-grid .feature-card:nth-child(3) {
+     transition-delay: 0.3s;
+}
+
+.features-grid .feature-card:nth-child(4) {
+     transition-delay: 0.4s;
+}
+
+.features-grid .feature-card:nth-child(5) {
+     transition-delay: 0.5s;
+}
+
+.features-grid .feature-card:nth-child(6) {
+     transition-delay: 0.6s;
+}
+
+@media (max-width: 768px) {
+     .features-hero-section,
+     .features-grid-section {
+          padding: 60px 20px;
+     }
+
+     .features-hero-content h1 {
+          font-size: 2.5rem;
+     }
+
+     .features-grid {
+          grid-template-columns: 1fr;
+     }
+
+     .feature-card {
+          padding: 25px;
+     }
+}
+
+@media (max-width: 480px) {
+     .features-hero-section,
+     .features-grid-section {
+          padding: 40px 10px;
+     }
+
+     .features-hero-content h1 {
+          font-size: 2rem;
+     }
+
+     .features-hero-content p {
+          font-size: 1rem;
+     }
+
+     .feature-card {
+          padding: 20px;
+     }
+
+     .feature-card h3 {
+          font-size: 1.3rem;
+     }
+
+     .feature-card p {
+          font-size: 0.9rem;
+     }
+}

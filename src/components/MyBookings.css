@@ -1,0 +1,101 @@
+:root {
+  --bg-dark: #0d1717;
+  --card-bg: #152323;
+  --neon-cyan: #22d3ee;
+  --text-muted: #64748b;
+}
+
+body {
+  background-color: var(--bg-dark);
+}
+
+.neon-park-bg {
+  background-color: var(--bg-dark);
+  color: white;
+}
+
+.x-small { font-size: 0.75rem; }
+
+/* Sidebar Styling */
+.active-link {
+  background: rgba(34, 211, 238, 0.1);
+  color: var(--neon-cyan) !important;
+  border-radius: 12px;
+}
+
+/* Map Section */
+.map-container {
+  height: 250px;
+  background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://placehold.co/600x400/0d1717/white?text=Map+Grid');
+  background-size: cover;
+}
+
+.search-bar {
+  background: rgba(21, 35, 35, 0.8);
+  border-radius: 10px;
+  backdrop-filter: blur(5px);
+  width: 300px;
+}
+
+.marker {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--neon-cyan);
+  color: black;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; justify-content: center; align-items: center;
+  font-weight: bold;
+  box-shadow: 0 0 20px var(--neon-cyan);
+}
+
+/* Cards */
+.bg-glass {
+  background: var(--card-bg);
+  border-radius: 20px;
+}
+
+.spot-card {
+  flex: 1;
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 20px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.spot-card.active {
+  background: var(--neon-cyan);
+  color: black;
+}
+
+.spot-card.active .text-secondary {
+  color: rgba(0,0,0,0.6) !important;
+}
+
+/* Summary Card */
+.summary-card {
+  background: var(--card-bg);
+  border-radius: 30px;
+}
+
+.btn-neon {
+  background: var(--neon-cyan);
+  border: none;
+  color: black;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+}
+
+.btn-neon:hover {
+  background: #1cb5cc;
+}
+
+.summary-icon {
+  background: rgba(34, 211, 238, 0.1);
+  color: var(--neon-cyan);
+  padding: 8px;
+  border-radius: 10px;
+}

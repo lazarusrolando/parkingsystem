@@ -1,0 +1,15 @@
+.inp-boxes {
+     background: #0f2027;
+}
+
+.settings-input {
+    border: 1px solid white;
+    background: transparent;
+    color: white;
+}
+
+.settings-input:focus {
+    border-color: #06e0f9;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(6, 224, 249, 0.2);
+}

@@ -1,0 +1,129 @@
+.map-layout {
+  background: #0f2123;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 80px;
+  background: #0f2123;
+  border-right: 1px solid #21464a;
+}
+
+.logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #06e0f9;
+  box-shadow: 0 0 15px rgba(6,224,249,.6);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: #8ec6cc;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.icon-btn.active {
+  color: #06e0f9;
+}
+
+/* Search panel */
+.search-panel {
+  width: 380px;
+  background: #0f2123;
+  border-right: 1px solid #21464a;
+}
+
+.parking-card {
+  background: #102123;
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.parking-card.active {
+  border: 1px solid #06e0f9;
+  box-shadow: 0 0 15px rgba(6,224,249,.2);
+}
+
+/* Map */
+.map-area {
+  background: #0f2123;
+  overflow: hidden;
+}
+
+.map-pattern {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(#1a3336 2px, transparent 2px),
+    linear-gradient(90deg, #1a3336 2px, transparent 2px);
+  background-size: 100px 100px;
+  opacity: .3;
+}
+
+/* Controls */
+.map-controls {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #21464a;
+  background: #0f2123;
+  color: white;
+}
+
+.map-btn.active {
+  color: #06e0f9;
+}
+
+/* Pins */
+.pin {
+  position: absolute;
+  background: #162a2d;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: bold;
+  transform: translate(-50%, -50%);
+}
+
+.active-pin {
+  background: #06e0f9;
+  color: black;
+  box-shadow: 0 0 20px rgba(6,224,249,.7);
+}
+
+/* User location */
+.user-location {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #06e0f9;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 20px rgba(6,224,249,.9);
+}
+
+/* Detail card */
+.detail-card {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  width: 300px;
+  background: rgba(22,42,45,.95);
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid #21464a;
+}

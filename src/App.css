@@ -1,0 +1,230 @@
+:root {
+  --primary-bg: #0b1f26;
+  --secondary-bg: #0e2a33;
+  --tertiary-bg: #102f3a;
+  --accent-color: #00e5ff;
+  --accent-rgb: 0, 229, 255;
+  --text-color: #FFFFFF;
+  --font-family: 'Poppins', sans-serif;
+  --font-size-small: 12px;
+  --font-size-medium: 14px;
+  --font-weight-bold: bold;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+::-webkit-scrollbar {
+  border: 1px solid whitesmoke;
+  background: linear-gradient(180deg, var(--primary-bg), var(--secondary-bg), var(--tertiary-bg));
+  width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: linear-gradient(180deg, #0b1f26, #0e2a33, #102f3a);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  * {
+    font-size: 0.9rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  * {
+    font-size: 0.8rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+}
+
+.t {
+  display: inline-block;
+  background: linear-gradient(90deg, #00e5ff, #00ff9d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: glowText 3s ease-in-out infinite alternate;
+}
+
+@keyframes glowText {
+  from {
+    filter: drop-shadow(0 0 2px rgba(0, 229, 255, 0.4)) brightness(1);
+  }
+
+  to {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 157, 0.8)) brightness(1.2);
+  }
+}
+
+.ask-sps-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999;
+  background: linear-gradient(0deg, #0b1f26, #0e2a33, #102f3a);
+  color: #fff;
+  border: 1px solid whitesmoke;
+  border-radius: 36px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 16px;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ask-sps-button:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.9);
+}
+
+.ask-sps-button img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.ask-sps-chat-box {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 300px;
+  max-width: calc(100vw - 40px);
+  z-index: 999;
+  background-color: #0f2c38;
+  border: 1px solid #1b5c76;
+  border-radius: 14px;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ask-sps-chat-box.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.ask-sps-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background-color: #0e3244;
+  border-bottom: 1px solid #1f5b74;
+  color: #fff;
+}
+
+.ask-sps-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+}
+
+.ask-sps-chat-header p {
+  font-size: 0.74rem;
+  color: #b8d8ea;
+  margin: 0;
+}
+
+.ask-sps-close {
+  background: transparent;
+  border: none;
+  color: #d8d8d8;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.ask-sps-chat-content {
+  padding: 12px;
+  color: #fff;
+}
+
+.ask-sps-chat-content p {
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+}
+
+.ask-sps-textarea {
+  width: 100%;
+  resize: none;
+  border-radius: 8px;
+  border: 1px solid #1e5570;
+  background: #072a38;
+  color: #f2f2f2;
+  padding: 8px;
+  font-size: 0.86rem;
+  margin-bottom: 8px;
+}
+
+.ask-sps-send-button {
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: #00b4ff;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ask-sps-send-button:hover {
+  background: #00d0ff;
+}
+
+.ask-sps-history {
+  max-height: 170px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  padding-right: 4px;
+}
+
+.ask-sps-message {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.ask-sps-message-user {
+  background: rgba(0, 116, 204, 0.15);
+  text-align: right;
+}
+
+.ask-sps-message-sps {
+  background: rgba(0, 201, 255, 0.18);
+  text-align: left;
+}
+
+.ask-sps-hint {
+  color: #b8d8ea;
+  margin: 0 0 8px;
+  font-size: 0.84rem;
+}
+
+.ask-sps-error {
+  color: #ffd4d4;
+  background: #5a0f0f;
+  border-radius: 6px;
+  padding: 5px 8px;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}

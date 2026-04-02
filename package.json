@@ -1,0 +1,85 @@
+{
+  "name": "parkingsystem",
+  "version": "1.7.0",
+  "private": true,
+  "main": "public/electron.js",
+  "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/react-fontawesome": "^3.3.0",
+    "@googlemaps/react-wrapper": "^1.2.0",
+    "@react-google-maps/api": "^2.20.8",
+    "animate.css": "^4.1.1",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
+    "framer-motion": "^12.38.0",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.7.0",
+    "react": "^19.2.4",
+    "react-bootstrap": "^2.10.10",
+    "react-chartjs-2": "^5.3.1",
+    "react-dom": "^19.2.4",
+    "react-icons": "^5.6.0",
+    "react-is": "^19.2.4",
+    "react-router": "^7.13.2",
+    "react-router-dom": "^7.13.2",
+    "recharts": "^3.8.1",
+    "styled-components": "^6.3.12",
+    "web-vitals": "^5.2.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "start": "npx vite",
+    "build": "npx vite build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@tailwindcss/container-queries": "^0.1.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "@tailwindcss/postcss": "^4.2.2",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.4.27",
+    "baseline-browser-mapping": "^2.10.11",
+    "concurrently": "^9.2.1",
+    "electron": "^40.4.1",
+    "patch-package": "^8.0.1",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "vite": "^8.0.3",
+    "wait-on": "^9.0.4"
+  },
+  "description": "[![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org)\r [![Vite](https://img.shields.io/badge/Vite-7-green)](https://vitejs.dev)\r [![Electron](https://img.shields.io/badge/Electron-40-yellow)](https://electronjs.org)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lazarusrolando/parkingsystem.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lazarusrolando/parkingsystem/issues"
+  },
+  "homepage": "https://github.com/lazarusrolando/parkingsystem#readme"
+}
