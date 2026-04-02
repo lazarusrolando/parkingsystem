@@ -1,17 +1,1 @@
-# Parking System Task: Fix Team Section UI
-
-## Team Section UI [DONE]
-
-## NEW TASK: Contact Table + HelpDesk Integration [DONE]
-- Contacts table created
-- Form connected
-- HelpDesk: 'Contacts' tab shows all contacts (name, subject, message, status)
-
-- [x] Extended support_tickets for contacts (anon name/email)
-- [x] backend/db.py: init_columns + create_contact func
-- [x] backend/server.py: POST /api/contacts anon
-- [x] src/api/parkingApi.js: submitContact export
-- [x] src/components/Contact.jsx: form → API + loading/success
-- [x] Admin view in HelpDesk.jsx (shows CONTACT- prefixed)
-
-- [x] Complete
+# TODO: Make nav left/right horizontal line\n\n✅ Step 1: Analyze feedback/targeted nav JSX\n✅ Step 2: Plan CSS tweaks for strict horizontal navs\n✅ Step 3: User approval\n✅ Step 4: Edit Header.css (added flex-wrap:nowrap, reduced gaps to 1.25rem/0.5rem on navs/profile)\n✅ Step 5: Test (refresh browser)\n✅ Step 6: Navs now strict horizontal line
