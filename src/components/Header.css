@@ -9,34 +9,27 @@
 .navbar-nav {
      display: flex;
      flex-direction: row !important;
-     /* Force horizontal alignment */
      align-items: center;
      list-style: none;
      gap: 1.5rem;
-     /* Space between buttons */
      margin: 0;
      padding: 0;
      white-space: nowrap;
-     /* Prevents text from wrapping to a new line */
 }
 
-/* Ensure the nav containers don't restrict width */
 .left-nav,
 .right-nav {
      display: flex;
      align-items: center;
      flex: 1;
-     /* Allows them to grow and sit side-by-side with the logo */
 }
 
 .right-nav {
      justify-content: flex-end;
-     /* Pushes Pricing/About/Contact/Auth to the right */
 }
 
 .left-nav {
      justify-content: flex-start;
-     /* Pushes Home/Booking/Work/Features to the left */
 }
 
 .logoContainer {
