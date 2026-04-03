@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Table, Badge, Modal } from 'react-bootstrap';
 import logo from '../sps.png'
 import {
-    PlusCircle, TrendingUp, Download, HelpCircle, History, ParkingCircle,
+    PlusCircle, TrendingUp, Download, HelpCircle, History, ParkingCircle, Edit, Trash,
     Wallet, Search, Copy, Check, QrCode, CreditCard, Landmark, ChevronRight, X, ShieldCheck
 } from 'lucide-react';
 import NotificationBox from './NotificationBox';
@@ -54,11 +54,11 @@ const WalletView = () => {
             try {
                 const token = localStorage.getItem('parkingAuthToken');
                 if (!token) return;
-                
+
                 const parkingApi = (await import('../api/parkingApi.js')).default;
                 const meResponse = await parkingApi.me();
                 const user = meResponse?.user || meResponse;
-                
+
                 if (user) {
                     const userData = {
                         id: user.id,
@@ -77,12 +77,12 @@ const WalletView = () => {
                 console.warn('Wallet: Failed to fetch user data:', err);
             }
         };
-        
+
         fetchUserData();
     }, []);
 
     // Get username for display - using the same pattern as UserDashboard.js
-    const userName = loggedInUser?.name || 
+    const userName = loggedInUser?.name ||
         `${loggedInUser?.firstname || ''} ${loggedInUser?.lastname || ''}`.trim() ||
         (loggedInUser?.email ? loggedInUser.email.split('@')[0] : null) ||
         "Guest";
@@ -289,7 +289,7 @@ const WalletView = () => {
         const currentYear = new Date().getFullYear();
         const accountId = loggedInUser?.id ? `SPS-${currentYear}-${loggedInUser.id.toString().padStart(6, '0')}` : `SPS-${currentYear}-000000`;
         const balance = parseFloat(userBalance) || 0;
-        
+
         // Create dynamic statement data
         const statementData = `
 PARKING SYSTEM - WALLET STATEMENT
@@ -403,21 +403,21 @@ This is an auto-generated statement.
                                     )}
                                 </div>
 
-                                    <div className="mt-auto position-relative pt-4">
+                                <div className="mt-auto position-relative pt-4">
                                     <p className="text-secondary small fw-bold mb-3 opacity-50 text-uppercase tracking-widest">Quick Top-Up</p>
                                     <div className="d-flex flex-wrap gap-2">
                                         {[100, 200, 500].map(amt => (
-                                            <Button 
-                                                key={amt} 
-                                                variant="outline-light" 
+                                            <Button
+                                                key={amt}
+                                                variant="outline-light"
                                                 className="rounded-pill px-4 border-opacity-10 hover-info-bg fw-bold text-sm"
                                                 onClick={() => handleOpenTopUpModal(amt)}
                                             >
                                                 +₹{amt}.00
                                             </Button>
                                         ))}
-                                        <Button 
-                                            variant="info" 
+                                        <Button
+                                            variant="info"
                                             className="ms-md-3 rounded-pill px-3 fw-black text-dark text-sm shadow-info"
                                             onClick={() => handleOpenTopUpModal()}
                                         >
@@ -464,19 +464,19 @@ This is an auto-generated statement.
                                                                         <rect x="14" y="10" width="10" height="8" rx="1" stroke="black" strokeWidth="0.5" />
                                                                     </svg>
                                                                 </div>
-                                                                <div className="card-number d-flex justify-content-between align-items-center">
+                                                                <div className="card-number text-[#e9e9e9] d-flex justify-content-between align-items-center">
                                                                     <span className="dots fw-bold font-monospace">•••• •••• •••• {card.cardNumber.slice(-4)}</span>
                                                                 </div>
                                                             </div>
 
                                                             <div className="d-flex justify-content-between align-items-end mt-2">
                                                                 <div>
-                                                                    <div className="label text-uppercase opacity-50">Card Holder</div>
-                                                                    <div className="name fw-bold">{card.cardholderName}</div>
+                                                                    <div className="label text-[#e9e9e9] text-uppercase opacity-50">Card Holder</div>
+                                                                    <div className="name text-[#e9e9e9] fw-bold">{card.cardholderName}</div>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <div className="label text-uppercase opacity-50">Expires</div>
-                                                                    <div className="expiry fw-bold">{card.expiryMonth} / {card.expiryYear}</div>
+                                                                    <div className="label text-[#e9e9e9] text-uppercase opacity-50">Expires</div>
+                                                                    <div className="expiry text-[#e9e9e9] fw-bold">{card.expiryMonth} / {card.expiryYear}</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -493,12 +493,14 @@ This is an auto-generated statement.
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="d-flex gap-2 mt-2">
-                                                        <Button variant="outline-info" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleEditCreditCard(card)}>
-                                                            Edit
+                                                    <div className="d-flex gap-2 mt-2"> {/* Reduced gap for a tighter look, or keep gap-4 */}
+                                                        <Button variant="outline-info" className="d-flex align-items-center justify-content-center rounded-2 p-0"
+                                                            style={{ width: '38px', height: '38px' }} onClick={() => handleEditCreditCard(card)}>
+                                                            <Edit size={18} />
                                                         </Button>
-                                                        <Button variant="outline-danger" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleDeleteCreditCard(card.id)}>
-                                                            Delete
+                                                        <Button variant="outline-danger" className="d-flex align-items-center justify-content-center rounded-2 p-0" style={{ width: '38px', height: '38px' }}
+                                                            onClick={() => handleDeleteCreditCard(card.id)}>
+                                                            <Trash size={18} />
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -527,18 +529,18 @@ This is an auto-generated statement.
                                                                         <rect x="14" y="10" width="10" height="8" rx="1" stroke="black" strokeWidth="0.5" />
                                                                     </svg>
                                                                 </div>
-                                                                <div className="card-number d-flex justify-content-between align-items-center">
+                                                                <div className="card-number text-[#e9e9e9] d-flex justify-content-between align-items-center">
                                                                     <span className="dots fw-bold font-monospace">•••• •••• •••• {card.cardNumber.slice(-4)}</span>
                                                                 </div>
                                                             </div>
                                                             <div className="d-flex justify-content-between align-items-end mt-2">
                                                                 <div>
-                                                                    <div className="label text-uppercase opacity-50">Card Holder</div>
-                                                                    <div className="name fw-bold">{card.cardholderName}</div>
+                                                                    <div className="label text-[#e9e9e9] text-uppercase opacity-50">Card Holder</div>
+                                                                    <div className="name text-[#e9e9e9] fw-bold">{card.cardholderName}</div>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <div className="label text-uppercase opacity-50">Expires</div>
-                                                                    <div className="expiry fw-bold">{card.expiryMonth} / {card.expiryYear}</div>
+                                                                    <div className="label text-[#e9e9e9] text-uppercase opacity-50">Expires</div>
+                                                                    <div className="expiry text-[#e9e9e9] fw-bold">{card.expiryMonth} / {card.expiryYear}</div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -556,11 +558,13 @@ This is an auto-generated statement.
                                                         </div>
                                                     </div>
                                                     <div className="d-flex gap-2 mt-2">
-                                                        <Button variant="outline-info" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleEditDebitCard(card)}>
-                                                            Edit
+                                                        <Button variant="outline-info" className="d-flex align-items-center justify-content-center rounded-2 p-0"
+                                                            style={{ width: '38px', height: '38px' }} onClick={() => handleEditCreditCard(card)}>
+                                                            <Edit size={18} />
                                                         </Button>
-                                                        <Button variant="outline-danger" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleDeleteDebitCard(card.id)}>
-                                                            Delete
+                                                        <Button variant="outline-danger" className="d-flex align-items-center justify-content-center rounded-2 p-0" style={{ width: '38px', height: '38px' }}
+                                                            onClick={() => handleDeleteCreditCard(card.id)}>
+                                                            <Trash size={18} />
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -600,10 +604,10 @@ This is an auto-generated statement.
                                                 </div>
                                             </div>
                                             <div className="d-flex gap-2 mt-2">
-                                                <Button variant="outline-info" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleEditUPILink(upi)}>
+                                                <Button variant="outline-info" className="flex-grow-1 rounded-3" onClick={() => handleEditUPILink(upi)}>
                                                     Edit
                                                 </Button>
-                                                <Button variant="outline-danger" size="sm" className="flex-grow-1 rounded-3" onClick={() => handleDeleteUPILink(upi.id)}>
+                                                <Button variant="outline-danger" className="flex-grow-1 rounded-3" onClick={() => handleDeleteUPILink(upi.id)}>
                                                     Delete
                                                 </Button>
                                             </div>

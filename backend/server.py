@@ -219,6 +219,8 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
                         'firstname': admin.get('firstname') or '',
                         'lastname': admin.get('lastname') or '',
                         'phone': admin.get('phone') or '',
+                        'avatar': admin.get('avatar') or '',
+                        'notifications': admin.get('notifications', {'push':True,'email':False,'sms':True}),
                         'role': 'admin'
                     }
             else:
@@ -231,6 +233,8 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
                         'firstname': db_user.get('firstname') or '',
                         'lastname': db_user.get('lastname') or '',
                         'phone': db_user.get('phone') or '',
+                        'avatar': db_user.get('avatar') or '',
+                        'notifications': db_user.get('notifications', {'push':True,'email':False,'sms':True}),
                         'role': 'user'
                     }
             return self._send_json({'user': user})
@@ -502,6 +506,26 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
                 return self._send_json({'slot': slot})
             except Exception as e:
                 return self._send_json({'error': str(e)}, status=400)
+
+        if path == '/api/update-profile':
+            user = self._get_authenticated_user()
+            if not user:
+                return self._send_json({'error': 'not authenticated'}, status=401)
+            update_data = {
+                'firstname': body.get('firstname'),
+                'lastname': body.get('lastname'),
+                'phone': body.get('phone'),
+                'avatar': body.get('avatar'),
+                'notifications': body.get('notifications')
+            }
+            if user.get('role') == 'admin':
+                updated = db.update_admin_profile(user['id'], **update_data)
+            else:
+                updated = db.update_user_profile(user['id'], **update_data)
+            if updated:
+                return self._send_json({'user': updated})
+            else:
+                return self._send_json({'error': 'user not found'}, status=404)
 
         # Support Tickets API
         if path == '/api/support-tickets':

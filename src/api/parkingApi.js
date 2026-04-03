@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_PARKING_API_URL || 'http://localhost:9000';
+const BASE_URL = import.meta.env.VITE_PARKING_API_URL || '/api';
 
 let _authToken = null;
 
@@ -109,7 +109,7 @@ export const logout = () =>
     method: 'POST',
   });
 
-export const me = () => _request('/api/me');
+export const me = () => _request('/me');
 export const getMe = me;
 export { setToken };
 
@@ -138,6 +138,12 @@ export const updateSupportTicket = (ticketId, status, admin_reply) =>
 export const deleteSupportTicket = (ticketId) =>
   _request(`/api/support-tickets/${ticketId}`, {
     method: 'DELETE',
+  });
+
+export const updateProfile = (data) =>
+  _request('/update-profile', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 
 export const submitContact = (full_name, email_address, subject, message) =>
@@ -172,6 +178,7 @@ const parkingApi = {
   createSupportTicket,
   updateSupportTicket,
   deleteSupportTicket,
+  updateProfile,
   bookSlot,
   releaseSlot,
   createSlot,

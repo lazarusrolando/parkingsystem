@@ -428,3 +428,114 @@ def update_contact_status(contact_id, status):
     with _get_conn() as c:
         c.execute('UPDATE contacts SET status = ?, updated_at = datetime("now") WHERE id = ?', (status, contact_id))
         return True
+
+
+def ensure_avatar_column():
+    with _get_conn() as c:
+        # Users table
+        rows = c.execute("PRAGMA table_info(users)").fetchall()
+        if not any(r[1] == 'avatar' for r in rows):
+            c.execute('ALTER TABLE users ADD COLUMN avatar TEXT')
+            c.commit()
+        
+        # Admins table
+        rows = c.execute("PRAGMA table_info(admins)").fetchall()
+        if not any(r[1] == 'avatar' for r in rows):
+            c.execute('ALTER TABLE admins ADD COLUMN avatar TEXT')
+            c.commit()
+
+
+def ensure_updated_at_columns():
+    """Add updated_at column to users and admins tables if missing."""
+    with _get_conn() as c:
+        # Users table
+        rows = c.execute("PRAGMA table_info(users)").fetchall()
+        if not any(r[1] == 'updated_at' for r in rows):
+            c.execute('ALTER TABLE users ADD COLUMN updated_at TEXT')
+            c.commit()
+        
+        # Admins table
+        rows = c.execute("PRAGMA table_info(admins)").fetchall()
+        if not any(r[1] == 'updated_at' for r in rows):
+            c.execute('ALTER TABLE admins ADD COLUMN updated_at TEXT')
+            c.commit()
+
+
+def update_user_profile(user_id, firstname=None, lastname=None, phone=None, avatar=None, notifications=None):
+    import json
+    with _get_conn() as c:
+        updates = []
+        params = []
+        if firstname is not None:
+            updates.append('firstname=?')
+            params.append(firstname)
+        if lastname is not None:
+            updates.append('lastname=?')
+            params.append(lastname)
+        if phone is not None:
+            updates.append('phone=?')
+            params.append(phone)
+        if avatar is not None:
+            updates.append('avatar=?')
+            params.append(avatar)
+        if notifications is not None:
+            updates.append('notifications=?')
+            params.append(json.dumps(notifications))
+        updates.append('updated_at=datetime("now")')
+        if updates:
+            query = f"UPDATE users SET {', '.join(updates)} WHERE id=?"
+            params.append(user_id)
+            c.execute(query, tuple(params))
+        row = c.execute(
+            'SELECT id, email, firstname, lastname, phone, avatar, notifications, created_at, (firstname || " " || lastname) as name FROM users WHERE id=?',
+            (user_id,)
+        ).fetchone()
+        if row:
+            row = dict(row)
+            row['name'] = row['name'].strip() if row['name'] else ''
+            if row['notifications']:
+                row['notifications'] = json.loads(row['notifications'])
+            return row
+        return None
+
+
+def update_admin_profile(user_id, firstname=None, lastname=None, phone=None, avatar=None, notifications=None):
+    import json
+    with _get_conn() as c:
+        updates = []
+        params = []
+        if firstname is not None:
+            updates.append('firstname=?')
+            params.append(firstname)
+        if lastname is not None:
+            updates.append('lastname=?')
+            params.append(lastname)
+        if phone is not None:
+            updates.append('phone=?')
+            params.append(phone)
+        if avatar is not None:
+            updates.append('avatar=?')
+            params.append(avatar)
+        if notifications is not None:
+            updates.append('notifications=?')
+            params.append(json.dumps(notifications))
+        updates.append('updated_at=datetime("now")')
+        if updates:
+            query = f"UPDATE admins SET {', '.join(updates)} WHERE id=?"
+            params.append(user_id)
+            c.execute(query, tuple(params))
+        row = c.execute(
+            'SELECT id, email, firstname, lastname, phone, avatar, notifications, role, created_at, (firstname || " " || lastname) as name FROM admins WHERE id=?',
+            (user_id,)
+        ).fetchone()
+        if row:
+            row = dict(row)
+            row['name'] = row['name'].strip() if row['name'] else ''
+            if row['notifications']:
+                row['notifications'] = json.loads(row['notifications'])
+            return row
+        return None
+
+
+ensure_avatar_column()
+ensure_updated_at_columns()

@@ -4,7 +4,7 @@ import './CreditCardForm.css';
 
 const CreditCardForm = ({ onClose, onSubmit, initialData }) => {
   const [cardData, setCardData] = useState(initialData || {
-    cardType: 'visa',
+    cardType: '',
     cardNumber: '',
     cardholderName: '',
     expiryMonth: '',
@@ -140,7 +140,7 @@ const CreditCardForm = ({ onClose, onSubmit, initialData }) => {
             <input
               type="text"
               id="cardNumber"
-              placeholder="1234 5678 9012 3456"
+              placeholder="0000 0000 0000 0000"
               value={cardData.cardNumber}
               onChange={handleCardNumberChange}
               maxLength="19"

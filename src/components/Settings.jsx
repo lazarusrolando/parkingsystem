@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User, Bell, Edit2, Shield
 } from 'lucide-react';
@@ -8,20 +8,20 @@ import parkingApi from '../api/parkingApi';
 import { notifyProfileUpdated } from '../utils/notificationUtils';
 
 const SettingsPage = () => {
-  const [notifications, setNotifications] = useState({
-    push: true,
-    email: false,
-    sms: true
-  });
 
-  const [profile, setProfile] = useState({
+
+const [profile, setProfile] = useState({
     firstName: "",
     lastName: "",
     email: "",
-    phone: ""
+    phone: "",
+    avatar: "",
+    notifications: {push: true, email: false, sms: true}
   });
 
-  const [savedProfile, setSavedProfile] = useState(null);
+const [savedProfile, setSavedProfile] = useState(null);
+
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -43,7 +43,9 @@ const SettingsPage = () => {
           firstName: user.user.firstname || '',
           lastName: user.user.lastname || '',
           email: user.user.email || '',
-          phone: user.user.phone || ''
+          phone: user.user.phone || '',
+          avatar: user.user.avatar || '',
+          notifications: user.user.notifications || {push: true, email: false, sms: true}
         };
         setProfile(profileData);
         setSavedProfile(profileData);
@@ -62,23 +64,80 @@ const SettingsPage = () => {
     loadUserProfile();
   }, []);
 
-  const toggleNotification = (key) => {
-    setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
+  const toggleNotification = async (key) => {
+    const newNotifications = {...profile.notifications, [key]: !profile.notifications[key]};
+    setProfile(prev => ({...prev, notifications: newNotifications}));
+    
+    // Auto-save
+    const updateData = {
+      notifications: newNotifications
+    };
+    try {
+      await parkingApi.updateProfile(updateData);
+      // Refetch to sync
+      const refreshedUser = await parkingApi.getMe();
+      const refreshedProfile = {
+        firstName: refreshedUser.user.firstname || '',
+        lastName: refreshedUser.user.lastname || '',
+        email: refreshedUser.user.email || '',
+        phone: refreshedUser.user.phone || '',
+        avatar: refreshedUser.user.avatar || '',
+        notifications: refreshedUser.user.notifications || {push: true, email: false, sms: true}
+      };
+      setProfile(refreshedProfile);
+      setSavedProfile(refreshedProfile);
+    } catch (error) {
+      console.error('Notification save failed:', error);
+    }
   };
 
   const handleSaveProfile = async () => {
     try {
-      const profileToSave = { ...profile };
-      setSavedProfile(profileToSave);
-      localStorage.setItem('userProfile', JSON.stringify(profileToSave));
+      const updateData = {
+        firstname: profile.firstName,
+        lastname: profile.lastName,
+        phone: profile.phone,
+        avatar: profile.avatar,
+        notifications: profile.notifications
+      };
+      await parkingApi.updateProfile(updateData);
+
+      // Refetch latest data from users table via /me
+      const refreshedUser = await parkingApi.getMe();
+      const refreshedProfile = {
+        firstName: refreshedUser.user.firstname || '',
+        lastName: refreshedUser.user.lastname || '',
+        email: refreshedUser.user.email || '',
+        phone: refreshedUser.user.phone || '',
+        avatar: refreshedUser.user.avatar || '',
+        notifications: refreshedUser.user.notifications || {push: true, email: false, sms: true}
+      };
+      
+      setProfile(refreshedProfile);
+      setSavedProfile(refreshedProfile);
+      localStorage.setItem('userProfile', JSON.stringify(refreshedProfile));
 
       // Trigger notification for profile update
-      notifyProfileUpdated(profileToSave);
+      notifyProfileUpdated(refreshedProfile);
 
       alert("Profile saved successfully!");
     } catch (error) {
       console.error('Save error:', error);
       alert('Save failed: ' + error.message);
+    }
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size < 2 * 1024 * 1024 && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, avatar: reader.result }));
+        e.target.value = '';
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert('Please select a valid image file under 2MB.');
     }
   };
 
@@ -105,11 +164,26 @@ const SettingsPage = () => {
                 <div className="flex items-center gap-6">
                   <div className="relative group">
                     <div className="size-24 rounded-full border-2 border-[#06e0f9] p-1">
-                      <div className="w-full h-full bg-slate-300 rounded-full bg-cover" style={{ backgroundImage: `url('https://api.dicebear.com/7.x/avataaars/svg?seed=Alex')` }}></div>
+                      <div 
+                        className="w-full h-full rounded-full bg-cover bg-center bg-no-repeat object-cover"
+                        style={{ 
+                          backgroundImage: `url(${profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${(profile.firstName + ' ' + profile.lastName).trim() || profile.email?.split('@')[0] || 'Alex'}`})` 
+                        }}
+                      />
                     </div>
-                    <button className="absolute bottom-0 right-0 bg-[#06e0f9] text-[#0f2123] p-1.5 rounded-full border-2 border-white dark:border-[#1c3235] hover:scale-110 transition-transform">
+                    <button 
+                      className="absolute bottom-0 right-0 bg-[#06e0f9] text-[#0f2123] p-1.5 rounded-full border-2 border-white dark:border-[#1c3235] hover:scale-110 transition-transform"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <Edit2 size={12} strokeWidth={3} />
                     </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
                   </div>
                   <div>
                     <p className="text-xl font-bold">{savedProfile ? savedProfile.firstName || profile.firstName : profile.firstName || 'Unknown'} {savedProfile ? savedProfile.lastName || profile.lastName : profile.lastName || 'User'}</p>
@@ -187,9 +261,9 @@ const SettingsPage = () => {
                     </div>
                     <button
                       onClick={() => toggleNotification(key)}
-                      className={`w-11 h-6 rounded-full transition-colors relative ${notifications[key] ? 'bg-[#06e0f9]' : 'bg-slate-300 dark:bg-slate-700'}`}
+                      className={`w-11 h-6 rounded-full transition-colors relative ${profile.notifications[key] ? 'bg-[#06e0f9]' : 'bg-slate-300 dark:bg-slate-700'}`}
                     >
-                      <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${notifications[key] ? 'translate-x-5' : ''}`} />
+                      <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${profile.notifications[key] ? 'translate-x-5' : ''}`} />
                     </button>
                   </div>
                 ))}

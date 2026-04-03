@@ -18,7 +18,14 @@ export default defineConfig({
     open: false,
     allowedHosts: [
       "unrenounced-harsh-luna.ngrok-free.dev"
-    ]
+    ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:9000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
 
   build: {

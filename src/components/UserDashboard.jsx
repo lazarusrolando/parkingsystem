@@ -233,6 +233,7 @@ const Dashboard = () => {
             lastname: user.lastname || '',
             name: user.name || `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.email?.split('@')[0],
             phone: user.phone || '',
+            avatar: user.avatar || '',
             role: 'user'
           };
           setLoggedInUser(userData);
