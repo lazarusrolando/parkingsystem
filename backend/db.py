@@ -539,3 +539,69 @@ def update_admin_profile(user_id, firstname=None, lastname=None, phone=None, ava
 
 ensure_avatar_column()
 ensure_updated_at_columns()
+
+
+def init_payments_table():
+    with _get_conn() as c:
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                payment_id TEXT UNIQUE NOT NULL,
+                order_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                amount REAL NOT NULL,
+                currency TEXT DEFAULT 'INR',
+                status TEXT NOT NULL DEFAULT 'created',
+                method TEXT,
+                razorpay_payment_id TEXT,
+                razorpay_signature TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                updated_at TEXT DEFAULT (datetime('now')),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        ''')
+
+init_payments_table()
+
+
+def create_payment_record(payment_id, order_id, user_id, amount, currency='INR'):
+    with _get_conn() as c:
+        c.execute('''
+            INSERT INTO payments (payment_id, order_id, user_id, amount, currency, status)
+            VALUES (?, ?, ?, ?, ?, 'created')
+        ''', (payment_id, order_id, user_id, amount, currency))
+        return get_payment_record(payment_id)
+
+
+def get_payment_record(payment_id):
+    with _get_conn() as c:
+        row = c.execute('SELECT * FROM payments WHERE payment_id = ?', (payment_id,)).fetchone()
+        return dict(row) if row else None
+
+
+def get_user_payments(user_id):
+    with _get_conn() as c:
+        rows = c.execute('''
+            SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC
+        ''', (user_id,)).fetchall()
+        return [dict(row) for row in rows]
+
+
+def update_payment_status(payment_id, status, method=None, razorpay_payment_id=None, razorpay_signature=None):
+    with _get_conn() as c:
+        updates = ['status = ?', 'updated_at = datetime("now")']
+        params = [status]
+        if method:
+            updates.append('method = ?')
+            params.append(method)
+        if razorpay_payment_id:
+            updates.append('razorpay_payment_id = ?')
+            params.append(razorpay_payment_id)
+        if razorpay_signature:
+            updates.append('razorpay_signature = ?')
+            params.append(razorpay_signature)
+        params.append(payment_id)
+        c.execute(f'''
+            UPDATE payments SET {', '.join(updates)} WHERE payment_id = ?
+        ''', params)
+        return get_payment_record(payment_id)

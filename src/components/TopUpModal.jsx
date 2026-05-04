@@ -1,7 +1,24 @@
-import React, { useState } from 'react';
-import { X, CreditCard, Smartphone, Wallet, Check, Loader } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, CreditCard, Smartphone, Wallet, Check, Loader, AlertCircle } from 'lucide-react';
 import './TopUpModal.css';
 import { notifyWalletTopUp } from '../utils/notificationUtils';
+import parkingApi from '../api/parkingApi';
+
+let razorpayInstance = null;
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) {
+      resolve(window.Razorpay);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(window.Razorpay);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
 
 const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess, initialAmount, processingFee = 0 }) => {
   const [selectedAmount, setSelectedAmount] = useState(initialAmount || null);
@@ -9,6 +26,7 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess, initialAmount,
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState(null);
 
   const predefinedAmounts = [100, 200, 500, 1000];
 
@@ -29,60 +47,86 @@ const TopUpModal = ({ isOpen, onClose, currentBalance, onSuccess, initialAmount,
     return 0;
   };
 
+  const handleRazorpayPayment = async (orderData) => {
+    try {
+      const Razorpay = await loadRazorpayScript();
+      const { key } = orderData;
+
+      razorpayInstance = new Razorpay({
+        key,
+        order_id: orderData.order.id,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency || 'INR',
+        name: 'Smart Parking System',
+        description: 'Wallet Top-up',
+        handler: async (response) => {
+          try {
+            const verification = await parkingApi.verifyPayment(
+              orderData.order.id,
+              response.razorpay_payment_id,
+              response.razorpay_signature
+            );
+            const newBalance = verification.wallet?.balance ?? currentBalance + getFinalAmount();
+            localStorage.setItem('availableBalance', newBalance.toString());
+            notifyWalletTopUp({ amount: getFinalAmount(), newBalance });
+            onSuccess(newBalance);
+            setShowSuccess(true);
+            setTimeout(() => {
+              setShowSuccess(false);
+              resetForm();
+              onClose();
+            }, 1500);
+          } catch (err) {
+            console.error('Payment verification failed:', err);
+            setError('Payment verification failed. Please contact support.');
+            setIsProcessing(false);
+          }
+        },
+        prefill: {
+          email: localStorage.getItem('userProfile') ? JSON.parse(localStorage.getItem('userProfile')).email : undefined
+        },
+        theme: {
+          color: '#00d1ff'
+        }
+      });
+      razorpayInstance.open();
+    } catch (err) {
+      console.error('Razorpay initialization failed:', err);
+      setError('Failed to load payment gateway. Please try again.');
+      setIsProcessing(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const amount = getFinalAmount();
 
     if (amount <= 0) {
-      alert('Please select or enter a valid amount');
+      setError('Please select or enter a valid amount');
       return;
     }
 
     if (amount < 100) {
-      alert('Minimum top-up amount is ₹100');
+      setError('Minimum top-up amount is ₹100');
       return;
     }
 
     setIsProcessing(true);
+    setError(null);
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Calculate new balance
-    const newBalance = currentBalance + amount;
-
-    // Save to localStorage
-    localStorage.setItem('availableBalance', newBalance.toString());
-
-    // Create transaction record
-    const transactions = JSON.parse(localStorage.getItem('walletTransactions') || '[]');
-    const newTransaction = {
-      id: Date.now(),
-      type: 'credit',
-      amount: amount,
-      method: paymentMethod,
-      date: new Date().toISOString(),
-      description: 'Wallet Top-up'
-    };
-transactions.unshift(newTransaction);
-    localStorage.setItem('walletTransactions', JSON.stringify(transactions));
-
-    // Notify wallet top-up
-    notifyWalletTopUp({
-      amount: amount,
-      newBalance: newBalance
-    });
-
-    setIsProcessing(false);
-    setShowSuccess(true);
-
-    // Call success callback after showing success message
-    setTimeout(() => {
-      onSuccess(newBalance);
-      setShowSuccess(false);
-      resetForm();
-      onClose();
-    }, 1500);
+    try {
+      const orderData = await parkingApi.createPaymentOrder(amount);
+      if (orderData.order) {
+        await handleRazorpayPayment(orderData);
+      } else {
+        setError(orderData.error || 'Failed to create payment order');
+        setIsProcessing(false);
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError('Payment failed. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   const resetForm = () => {
@@ -90,6 +134,7 @@ transactions.unshift(newTransaction);
     setCustomAmount('');
     setPaymentMethod('card');
     setShowSuccess(false);
+    setError(null);
   };
 
   const handleClose = () => {
@@ -229,9 +274,16 @@ transactions.unshift(newTransaction);
 
             </div>
 
+            {error && (
+            <div className="error-message">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
             <div className="security-note">
               <Check size={14} />
-              <span>Secure encrypted payment</span>
+              <span>Secure encrypted payment via Razorpay</span>
             </div>
           </form>
         )}

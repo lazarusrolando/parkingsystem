@@ -12,6 +12,7 @@ import ollama
 
 import db
 from db import get_session, create_session, delete_session
+import payment
 import random
 from datetime import datetime, timedelta
 
@@ -314,6 +315,20 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
             wallet = db.get_user_wallet(user['id'])
             return self._send_json({'wallet': wallet})
 
+        if path == '/api/payments':
+            user = self._get_authenticated_user()
+            if not user:
+                return self._send_json({'error': 'not authenticated'}, status=401)
+            payments = db.get_user_payments(user['id'])
+            return self._send_json({'payments': payments})
+
+        if path == '/api/payment/key':
+            key_details = payment.get_key_details()
+            return self._send_json({'key': key_details})
+
+        if path == '/api/payment/webhook':
+            return self.handle_payment_webhook()
+
         return self._send_json({'error': 'not found'}, status=404)
 
     def do_POST(self):
@@ -445,6 +460,59 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
                 return self._send_json({'wallet': wallet})
             except Exception as e:
                 return self._send_json({'error': str(e)}, status=400)
+
+        if path == '/api/payment/create-order':
+            user = self._get_authenticated_user()
+            if not user:
+                return self._send_json({'error': 'not authenticated'}, status=401)
+            amount = body.get('amount')
+            if not amount or amount <= 0:
+                return self._send_json({'error': 'invalid amount'}, status=400)
+            try:
+                order = payment.create_order(
+                    amount=amount,
+                    receipt=f'wallet_topup_{user["id"]}_{int(time.time())}',
+                    notes={'user_id': str(user['id']), 'type': 'wallet_topup'}
+                )
+                if 'error' in order:
+                    return self._send_json({'error': order['error']}, status=order.get('status_code', 500))
+                db.create_payment_record(
+                    payment_id=order['id'],
+                    order_id=order['id'],
+                    user_id=user['id'],
+                    amount=amount
+                )
+                return self._send_json({'order': order})
+            except Exception as e:
+                return self._send_json({'error': str(e)}, status=500)
+
+        if path == '/api/payment/verify':
+            user = self._get_authenticated_user()
+            if not user:
+                return self._send_json({'error': 'not authenticated'}, status=401)
+            order_id = body.get('order_id')
+            payment_id = body.get('payment_id')
+            signature = body.get('signature')
+            if not all([order_id, payment_id, signature]):
+                return self._send_json({'error': 'missing required fields'}, status=400)
+            if not payment.verify_payment_signature(order_id, payment_id, signature):
+                return self._send_json({'error': 'invalid signature'}, status=400)
+            try:
+                order = payment.get_order(order_id)
+                if 'error' in order:
+                    return self._send_json({'error': order['error']}, status=order.get('status_code', 500))
+                amount = order.get('amount', 0) / 100
+                db.update_payment_status(
+                    order_id,
+                    status='captured',
+                    razorpay_payment_id=payment_id,
+                    razorpay_signature=signature
+                )
+                db.update_user_wallet(user['id'], amount)
+                wallet = db.get_user_wallet(user['id'])
+                return self._send_json({'wallet': wallet})
+            except Exception as e:
+                return self._send_json({'error': str(e)}, status=500)
 
         if path == '/api/book':
             user = self._get_authenticated_user()
@@ -594,6 +662,64 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
             with SSE_LOCK:
                 if q in SSE_SUBSCRIBERS:
                     SSE_SUBSCRIBERS.remove(q)
+
+    def handle_payment_webhook(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+
+        signature = self.headers.get('X-Razorpay-Signature', '')
+        if not signature:
+            self.wfile.write(b'{"error": "missing signature"}')
+            return
+
+        length = int(self.headers.get('Content-Length', 0))
+        raw_body = self.rfile.read(length) if length else b''
+
+        if not payment.verify_webhook_signature(raw_body.decode('utf-8'), signature):
+            self.wfile.write(b'{"error": "invalid signature"}')
+            return
+
+        try:
+            event = json.loads(raw_body.decode('utf-8'))
+        except Exception:
+            self.wfile.write(b'{"error": "invalid json"}')
+            return
+
+        event_type = event.get('event')
+        payload = event.get('payload', {})
+        payment_entity = payload.get('payment', {})
+        order_entity = payload.get('order', {})
+
+        razorpay_payment_id = payment_entity.get('id')
+        razorpay_order_id = order_entity.get('id')
+        amount = payment_entity.get('amount', 0) / 100
+        status = payment_entity.get('status')
+
+        if event_type == 'payment.captured' and razorpay_order_id:
+            payment_record = db.get_payment_record(razorpay_order_id)
+            if payment_record:
+                db.update_payment_status(
+                    razorpay_order_id,
+                    status='captured',
+                    razorpay_payment_id=razorpay_payment_id
+                )
+                db.update_user_wallet(payment_record['user_id'], amount)
+                broadcast_event('payment_success', {
+                    'payment_id': razorpay_payment_id,
+                    'order_id': razorpay_order_id,
+                    'amount': amount
+                })
+
+        elif event_type == 'payment.failed' and razorpay_order_id:
+            db.update_payment_status(razorpay_order_id, status='failed')
+            broadcast_event('payment_failed', {
+                'payment_id': razorpay_payment_id,
+                'order_id': razorpay_order_id
+            })
+
+        self.wfile.write(b'{"received": true}')
 
     def log_message(self, format, *args):
         print("[BACKEND]", format % args)

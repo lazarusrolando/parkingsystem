@@ -42,6 +42,10 @@ const WalletView = () => {
     const [upiLink, setUpiLink] = useState("");
     const [userBalance, setUserBalance] = useState("0");
 
+    // Payment History
+    const [paymentHistory, setPaymentHistory] = useState([]);
+    const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+
     const [loggedInUser, setLoggedInUser] = useState(() => {
         const userProfile = localStorage.getItem('userProfile');
         const saved = localStorage.getItem('loggedInUser');
@@ -58,6 +62,12 @@ const WalletView = () => {
                 const parkingApi = (await import('../api/parkingApi.js')).default;
                 const meResponse = await parkingApi.me();
                 const user = meResponse?.user || meResponse;
+
+                // Fetch wallet balance
+                const walletResponse = await parkingApi.getWallet();
+                if (walletResponse.wallet?.balance !== undefined) {
+                    setUserBalance(walletResponse.wallet.balance.toString());
+                }
 
                 if (user) {
                     const userData = {
@@ -101,6 +111,29 @@ const WalletView = () => {
     };
 
     const planInfo = getPlanInfo(userPlan);
+
+    // Fetch payment history
+    useEffect(() => {
+        const fetchPaymentHistory = async () => {
+            const token = localStorage.getItem('parkingAuthToken');
+            if (!token) return;
+
+            setIsLoadingPayments(true);
+            try {
+                const parkingApi = (await import('../api/parkingApi.js')).default;
+                const response = await parkingApi.getPayments();
+                if (response.payments) {
+                    setPaymentHistory(response.payments);
+                }
+            } catch (err) {
+                console.warn('Failed to fetch payment history:', err);
+            } finally {
+                setIsLoadingPayments(false);
+            }
+        };
+
+        fetchPaymentHistory();
+    }, []);
 
     // Get discount percentage based on user plan
     const getDiscountPercentage = (plan) => {
@@ -648,7 +681,24 @@ This is an auto-generated statement.
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <TransactionRow title="No transactions yet" meta="" amount="₹0" status="" />
+                                        {isLoadingPayments ? (
+                                            <tr>
+                                                <td colSpan={2} className="px-4 py-3 text-center text-secondary">Loading...</td>
+                                            </tr>
+                                        ) : paymentHistory.length === 0 ? (
+                                            <TransactionRow title="No transactions yet" meta="" amount="₹0" status="" />
+                                        ) : (
+                                            paymentHistory.slice(0, 5).map((payment) => (
+                                                <TransactionRow
+                                                    key={payment.payment_id}
+                                                    title="Wallet Top-up"
+                                                    meta={new Date(payment.created_at).toLocaleDateString()}
+                                                    amount={`₹${payment.amount}`}
+                                                    status={payment.status}
+                                                    isCredit={payment.status === 'captured'}
+                                                />
+                                            ))
+                                        )}
                                     </tbody>
                                 </Table>
                                 <div className="p-4 mt-auto border-top border-white border-opacity-5 text-center">

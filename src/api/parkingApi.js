@@ -56,6 +56,17 @@ export const updateWallet = (delta, options = {}) => _request('/api/wallet', {
   body: JSON.stringify({ delta, ...options }),
 });
 
+export const getPaymentKey = () => _request('/api/payment/key');
+export const createPaymentOrder = (amount) => _request('/api/payment/create-order', {
+  method: 'POST',
+  body: JSON.stringify({ amount }),
+});
+export const verifyPayment = (orderId, paymentId, signature) => _request('/api/payment/verify', {
+  method: 'POST',
+  body: JSON.stringify({ order_id: orderId, payment_id: paymentId, signature }),
+});
+export const getPayments = () => _request('/api/payments');
+
 export const bookSlot = (slotId, amount = 0) =>
   _request('/api/book', {
     method: 'POST',
@@ -170,6 +181,10 @@ const parkingApi = {
   setDefaultVehicle,
   getWallet,
   updateWallet,
+  getPaymentKey,
+  createPaymentOrder,
+  verifyPayment,
+  getPayments,
   getUsers,
   getAdmins,
   getAdminStats,
