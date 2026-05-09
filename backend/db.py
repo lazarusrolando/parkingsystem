@@ -1,16 +1,175 @@
 import sqlite3
 import os
+import shutil
+import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta
 import json
 
-DB_FILE = os.environ.get('PARKING_DB', str(Path(__file__).resolve().parent.parent / 'database' / 'parking.db'))
+BASE_DIR = Path(__file__).resolve().parent.parent
+BUNDLED_DB_FILE = BASE_DIR / 'database' / 'parking.db'
+
+CORE_SCHEMA = """
+CREATE TABLE IF NOT EXISTS parking_slots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('available', 'booked')) DEFAULT 'available',
+    vehicle_number TEXT,
+    user_id TEXT,
+    price REAL DEFAULT 0,
+    address TEXT DEFAULT '',
+    tags TEXT DEFAULT '',
+    img TEXT DEFAULT '',
+    rating REAL DEFAULT 0,
+    reviews INTEGER DEFAULT 0,
+    is_best INTEGER DEFAULT 0,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS bookings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot_id INTEGER NOT NULL,
+    vehicle_number TEXT,
+    user_id INTEGER,
+    booked_at TEXT DEFAULT (datetime('now')),
+    released_at TEXT,
+    amount REAL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('active', 'released')) DEFAULT 'active',
+    FOREIGN KEY(slot_id) REFERENCES parking_slots(id)
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    firstname TEXT DEFAULT '',
+    lastname TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    firstname TEXT DEFAULT '',
+    lastname TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    role TEXT DEFAULT 'admin',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_vehicles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    plate TEXT UNIQUE NOT NULL,
+    is_default INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS user_wallets (
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    balance REAL DEFAULT 0.0,
+    last_topup REAL DEFAULT 0.0,
+    auto_topup INTEGER DEFAULT 1,
+    topup_threshold REAL DEFAULT 100.0,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_data TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    expires_at TEXT
+);
+"""
+
+CHENNAI_SPOTS = [
+    ('GCC Multilevel Parking', 200, 'Pondy Bazaar, T. Nagar', 'EV,Automated', 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=200', 4.8, 1240, 1),
+    ('Express Avenue Mall', 400, 'Royapettah', 'Valet,Covered', 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=200', 4.5, 3100, 0),
+    ('Spencer Plaza Lot', 300, 'Anna Salai', '24/7', 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=200', 3.9, 850, 0),
+    ('Chennai Central CMRL', 250, 'Park Town', 'Metro,Security', 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=200', 4.2, 520, 0),
+    ('VR Chennai Parking', 400, 'Anna Nagar West', 'Luxury,EV', 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=200', 4.7, 2100, 1),
+    ('Tower Park Public Lot', 200, 'Anna Nagar', 'Open', 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=200', 4.1, 430, 0),
+    ('Phoenix Marketcity', 400, 'Velachery Main Rd', 'Valet,Covered', 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=200', 4.6, 4500, 1),
+    ('Grand Square Mall', 200, 'Velachery-Tambaram Rd', 'Budget', 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=200', 4.3, 890, 0),
+    ('Besant Nagar Beach Lot', 200, "Elliot's Beach", 'Open', 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=200', 4.0, 2100, 0),
+    ('Marina Mall OMR', 300, 'Egattur', 'CCTV', 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=200', 4.4, 1200, 0),
+    ('Tidel Park Parking', 300, 'Tharamani', 'Corporate', 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=200', 4.1, 670, 0),
+]
+
+
+def _resolve_db_file():
+    configured = os.environ.get('PARKING_DB')
+    if configured:
+        return Path(configured)
+
+    if os.environ.get('VERCEL'):
+        tmp_db = Path(tempfile.gettempdir()) / 'parking.db'
+        if not tmp_db.exists() and BUNDLED_DB_FILE.exists():
+            tmp_db.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(BUNDLED_DB_FILE, tmp_db)
+        return tmp_db
+
+    return BUNDLED_DB_FILE
+
+
+DB_FILE = str(_resolve_db_file())
 
 def _get_conn():
+    Path(DB_FILE).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_FILE, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute('PRAGMA foreign_keys = ON')
     return conn
+
+
+def _add_column_if_missing(conn, table, column_name, definition):
+    rows = conn.execute(f'PRAGMA table_info({table})').fetchall()
+    if not any(row[1] == column_name for row in rows):
+        conn.execute(f'ALTER TABLE {table} ADD COLUMN {column_name} {definition}')
+
+
+def _initialize_database():
+    with _get_conn() as conn:
+        conn.executescript(CORE_SCHEMA)
+
+        for table, column_name, definition in (
+            ('parking_slots', 'price', 'REAL DEFAULT 0'),
+            ('parking_slots', 'address', "TEXT DEFAULT ''"),
+            ('parking_slots', 'tags', "TEXT DEFAULT ''"),
+            ('parking_slots', 'img', "TEXT DEFAULT ''"),
+            ('parking_slots', 'rating', 'REAL DEFAULT 0'),
+            ('parking_slots', 'reviews', 'INTEGER DEFAULT 0'),
+            ('parking_slots', 'is_best', 'INTEGER DEFAULT 0'),
+            ('admins', 'role', "TEXT DEFAULT 'admin'"),
+            ('users', 'firstname', "TEXT DEFAULT ''"),
+            ('users', 'lastname', "TEXT DEFAULT ''"),
+            ('users', 'phone', "TEXT DEFAULT ''"),
+        ):
+            _add_column_if_missing(conn, table, column_name, definition)
+
+        slot_count = conn.execute('SELECT COUNT(1) FROM parking_slots').fetchone()[0]
+        if slot_count == 0:
+            conn.executemany(
+                """
+                INSERT INTO parking_slots
+                    (name, status, price, address, tags, img, rating, reviews, is_best)
+                VALUES (?, 'available', ?, ?, ?, ?, ?, ?, ?)
+                """,
+                CHENNAI_SPOTS,
+            )
+
+        admin_count = conn.execute('SELECT COUNT(1) FROM admins').fetchone()[0]
+        if admin_count == 0:
+            conn.execute(
+                "INSERT INTO admins (email, password, firstname, lastname, role) VALUES (?, ?, 'Admin', '', ?)",
+                ('admin@parking.com', 'admin123', 'admin'),
+            )
+
+
+_initialize_database()
 
 def get_slots():
     with _get_conn() as c:

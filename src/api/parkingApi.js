@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_PARKING_API_URL || '';
+const DEFAULT_API_URL = import.meta.env.PROD ? 'https://parkingsystem-ogi7.onrender.com' : '';
+const BASE_URL = (import.meta.env.VITE_PARKING_API_URL || DEFAULT_API_URL).replace(/\/$/, '');
 
 let _authToken = null;
 
@@ -120,7 +121,7 @@ export const logout = () =>
     method: 'POST',
   });
 
-export const me = () => _request('/me');
+export const me = () => _request('/api/me');
 export const getMe = me;
 export { setToken };
 
@@ -152,7 +153,7 @@ export const deleteSupportTicket = (ticketId) =>
   });
 
 export const updateProfile = (data) =>
-  _request('/update-profile', {
+  _request('/api/update-profile', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -208,4 +209,3 @@ const parkingApi = {
 };
 
 export default parkingApi;
-
