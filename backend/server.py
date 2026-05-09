@@ -813,5 +813,11 @@ try:
         return jsonify({'error': 'WSGI wrapper active; run standalone server for full functionality'}), 501
 
 except Exception:
-    # If Flask is not available, ensure `app` name exists but set to None
-    app = None
+    # If Flask is not available, expose a minimal WSGI fallback callable named `app`
+    def _wsgi_fallback(environ, start_response):
+        status = '501 Not Implemented'
+        headers = [('Content-Type', 'application/json')]
+        start_response(status, headers)
+        return [json.dumps({'error': 'WSGI wrapper active; Flask not installed'}).encode('utf-8')]
+
+    app = _wsgi_fallback
