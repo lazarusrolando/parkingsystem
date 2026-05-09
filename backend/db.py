@@ -255,8 +255,8 @@ def get_session(token):
 
 def delete_session(token):
     with _get_conn() as c:
-        c.execute('DELETE FROM sessions WHERE token = ?', (token,))
-        return c.rowcount > 0
+        cursor = c.execute('DELETE FROM sessions WHERE token = ?', (token,))
+        return cursor.rowcount > 0
 
 def get_admin_stats():
     with _get_conn() as c:

@@ -250,10 +250,10 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
 
         # Support Tickets API
         if path == '/api/support-tickets':
-            return handle_support_tickets('GET', path, {}, self.headers)
+            return handle_support_tickets('GET', path, {}, self.headers, self._send_json)
         
         if path.startswith('/api/support-tickets/') and len(path.split('/')) >= 3:
-            return handle_support_ticket('GET', path, {}, self.headers)
+            return handle_support_ticket('GET', path, {}, self.headers, self._send_json)
 
         if path.startswith('/api/slots/'):
             try:
@@ -423,7 +423,12 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
         if path == '/api/logout':
             user = self._get_authenticated_user()
             if user:
-                db.delete_session(token)  # Note: token from auth header
+                auth = self.headers.get('Authorization', '')
+                token = ''
+                if auth.startswith('Bearer '):
+                    token = auth.split(' ', 1)[1].strip()
+                if token:
+                    db.delete_session(token)
             return self._send_json({'success': True})
 
         # Existing parking endpoints
@@ -597,12 +602,12 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
 
         # Support Tickets API
         if path == '/api/support-tickets':
-            resp = handle_support_tickets('POST', path, body, self.headers)
-            return self._send_json(resp.get('body') if isinstance(resp.get('body'), dict) else resp, status=resp.get('status', 200))
+            handle_support_tickets('POST', path, body, self.headers, self._send_json)
+            return
         
         if path.startswith('/api/support-tickets/') and len(path.split('/')) >= 3:
-            resp = handle_support_ticket('PUT', path, body, self.headers)
-            return self._send_json(resp.get('body') if isinstance(resp.get('body'), dict) else resp, status=resp.get('status', 200))
+            handle_support_ticket('PUT', path, body, self.headers, self._send_json)
+            return
 
         if path == '/api/contacts':
             required = ['full_name', 'email_address', 'subject', 'message']
@@ -617,7 +622,8 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
             return self._send_json({'contact': contact}, status=201)
 
         if path == '/api/admin/contacts':
-            if self._get_authenticated_user().get('role') != 'admin':
+            user = self._get_authenticated_user()
+            if not user or user.get('role') != 'admin':
                 return self._send_json({'error': 'admin only'}, status=403)
             if self.command == 'GET':
                 contacts = db.get_contacts()
@@ -685,6 +691,10 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
             event = json.loads(raw_body.decode('utf-8'))
         except Exception:
             self.wfile.write(b'{"error": "invalid json"}')
+            return
+
+        if not isinstance(event, dict):
+            self.wfile.write(b'{"error": "invalid event format"}')
             return
 
         event_type = event.get('event')
