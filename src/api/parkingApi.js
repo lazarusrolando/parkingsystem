@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_PARKING_API_URL || '/api';
+const BASE_URL = import.meta.env.VITE_PARKING_API_URL || '';
 
 let _authToken = null;
 
@@ -203,8 +203,9 @@ const parkingApi = {
   login,
   logout,
   sendChat,
+  submitContact,
+  getAdminContacts,
 };
 
 export default parkingApi;
-
 

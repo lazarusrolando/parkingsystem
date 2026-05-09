@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import Navbar from './Navbar';
 import NotificationBox from './NotificationBox';
+import parkingApi from '../api/parkingApi.js';
 
 const ParkingHistory = () => {
   const [activeTab, setActiveTab] = useState('Bookings');
@@ -27,7 +28,6 @@ const ParkingHistory = () => {
         const token = localStorage.getItem('parkingAuthToken');
         if (!token) return;
         
-        const parkingApi = (await import('../api/parkingApi.js')).default;
         const meResponse = await parkingApi.me();
         const user = meResponse?.user || meResponse;
         

@@ -13,6 +13,7 @@ import TopUpModal from './TopUpModal';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Navbar from './Navbar';
 import './Wallet.css';
+import parkingApi from '../api/parkingApi.js';
 
 const WalletView = () => {
     // Modal States
@@ -59,7 +60,6 @@ const WalletView = () => {
                 const token = localStorage.getItem('parkingAuthToken');
                 if (!token) return;
 
-                const parkingApi = (await import('../api/parkingApi.js')).default;
                 const meResponse = await parkingApi.me();
                 const user = meResponse?.user || meResponse;
 
@@ -120,7 +120,6 @@ const WalletView = () => {
 
             setIsLoadingPayments(true);
             try {
-                const parkingApi = (await import('../api/parkingApi.js')).default;
                 const response = await parkingApi.getPayments();
                 if (response.payments) {
                     setPaymentHistory(response.payments);

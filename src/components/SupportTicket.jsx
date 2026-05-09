@@ -14,6 +14,7 @@ import {
 import { Link } from "react-router-dom";
 import Navbar from "./Navbar";
 import NotificationBox from "./NotificationBox";
+import parkingApi from "../api/parkingApi.js";
 
 const SmartParkingSupport = () => {
 
@@ -44,7 +45,6 @@ const SmartParkingSupport = () => {
         const token = localStorage.getItem('parkingAuthToken');
         if (!token) return;
         
-        const parkingApi = (await import('../api/parkingApi.js')).default;
         const meResponse = await parkingApi.me();
         const user = meResponse?.user || meResponse;
         

@@ -8,6 +8,7 @@ import Navbar from './Navbar';
 import NotificationBox from './NotificationBox';
 import TopUpModal from './TopUpModal';
 import Chatbot from './Chatbot';
+import parkingApi from '../api/parkingApi.js';
 
 const CHENNAI_SPOTS = [
   { id: 1, title: "GCC Multilevel Parking", price: 200, distance: "0.1 km", address: "Pondy Bazaar, T. Nagar", tags: ['EV', 'Automated'], isBest: true, img: "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=200", rating: 4.8, reviews: 1240, lat: 13.0418, lng: 80.2341 },
@@ -220,8 +221,6 @@ const Dashboard = () => {
         const token = localStorage.getItem('parkingAuthToken');
         if (!token) return;
         
-        // Import parkingApi dynamically to avoid circular dependency
-        const parkingApi = (await import('../api/parkingApi.js')).default;
         const meResponse = await parkingApi.me();
         const user = meResponse?.user || meResponse;
         

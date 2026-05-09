@@ -1,14 +1,30 @@
 import json
+import io
 import os
 import re
 import threading
 import queue
 import time
+import types
 import uuid
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+from socketserver import BaseServer
+from typing import Any, cast
 from urllib.parse import urlparse
 import requests
-import ollama
+
+try:
+    from flask import Flask, Response, jsonify, request
+except ImportError:
+    Flask = None
+    Response = None
+    jsonify = None
+    request = None
+
+try:
+    import ollama
+except ImportError:
+    ollama = None
 
 import db
 from db import get_session, create_session, delete_session
@@ -18,6 +34,7 @@ from datetime import datetime, timedelta
 
 SSE_SUBSCRIBERS = []
 SSE_LOCK = threading.Lock()
+app = None
 
 OLLAMA_URL = 'http://localhost:11434/api/chat'
 DEFAULT_MODEL = os.getenv('OLLAMA_MODEL', 'qwen3.5')
@@ -36,6 +53,9 @@ def _strip_think_tags(text):
 
 def call_ollama_agent(system_prompt_with_user_query):
     print(f"[Smart Parking Agent] Using Ollama '{DEFAULT_MODEL}'")
+    if ollama is None:
+        print("[Smart Parking Agent] Ollama package is not installed; using fallback response")
+        return ""
     try:
         response = ollama.chat(
             model=DEFAULT_MODEL,
@@ -119,7 +139,7 @@ def handle_support_ticket(method, path, body, headers, send_json_func):
     if len(parts) < 3:
         return send_json_func({'error': 'invalid ticket path'}, status=400)
     
-    ticket_id = parts[2]
+    ticket_id = parts[-1]
     ticket = db.get_support_ticket(ticket_id)
     
     if not ticket:
@@ -164,7 +184,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
         self.wfile.write(body)
@@ -174,7 +194,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'text/plain; charset=utf-8')
         self.send_header('Content-Length', str(len(text.encode('utf-8'))))
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.send_header('Cache-Control', 'no-cache')
         if extra_headers:
@@ -186,7 +206,7 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         self.end_headers()
 
@@ -330,6 +350,37 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
             return self.handle_payment_webhook()
 
         return self._send_json({'error': 'not found'}, status=404)
+
+    def _read_request_body(self):
+        length = int(self.headers.get('Content-Length', 0))
+        body = _read_json(self.rfile, length) if length else {}
+        return body if isinstance(body, dict) else {}
+
+    def do_PUT(self):
+        path = urlparse(self.path).path
+        body = self._read_request_body()
+
+        if path.startswith('/api/support-tickets/') and len(path.split('/')) >= 3:
+            return handle_support_ticket('PUT', path, body, self.headers, self._send_json)
+
+        return self._send_json({'error': 'method not allowed'}, status=405)
+
+    def do_PATCH(self):
+        path = urlparse(self.path).path
+        body = self._read_request_body()
+
+        if path.startswith('/api/support-tickets/') and len(path.split('/')) >= 3:
+            return handle_support_ticket('PATCH', path, body, self.headers, self._send_json)
+
+        return self._send_json({'error': 'method not allowed'}, status=405)
+
+    def do_DELETE(self):
+        path = urlparse(self.path).path
+
+        if path.startswith('/api/support-tickets/') and len(path.split('/')) >= 3:
+            return handle_support_ticket('DELETE', path, {}, self.headers, self._send_json)
+
+        return self._send_json({'error': 'method not allowed'}, status=405)
 
     def do_POST(self):
         path = urlparse(self.path).path
@@ -793,31 +844,114 @@ def run(host='0.0.0.0', port=9000):
     finally:
         server.server_close()
 
+def _wsgi_fallback(environ, start_response):
+    status = '500 Internal Server Error'
+    headers = [('Content-Type', 'application/json')]
+    start_response(status, headers)
+    return [json.dumps({'error': 'Flask is required to serve this backend on WSGI'}).encode('utf-8')]
+
+
+def _normalize_wsgi_path(path, query_string=''):
+    normalized = '/' + path.lstrip('/')
+
+    for prefix in ('/_/backend', '/backend'):
+        if normalized == prefix:
+            normalized = '/'
+            break
+        if normalized.startswith(prefix + '/'):
+            normalized = normalized[len(prefix):]
+            break
+
+    if normalized.startswith('/api/api/'):
+        normalized = normalized[4:]
+
+    if normalized not in ('/', '/health') and not normalized.startswith('/api/'):
+        normalized = '/api' + normalized
+
+    if query_string:
+        normalized = f'{normalized}?{query_string}'
+
+    return normalized
+
+
+def _dispatch_with_request_handler(method, path, headers, body):
+    parsed_path = urlparse(path).path
+    if parsed_path == '/api/sse':
+        payload = json.dumps({'error': 'SSE is not available in the serverless WSGI runtime'}).encode('utf-8')
+        return 501, [('Content-Type', 'application/json; charset=utf-8')], payload
+
+    response_state = {'status': 200, 'headers': []}
+    handler = ParkingRequestHandler.__new__(ParkingRequestHandler)
+    handler.command = method.upper()
+    handler.path = path
+    handler.headers = headers
+    handler.rfile = io.BytesIO(body or b'')
+    handler.wfile = io.BytesIO()
+    handler.request_version = 'HTTP/1.1'
+    handler.client_address = ('wsgi', 0)
+    handler.server = cast(BaseServer, None)
+
+    def send_response(self, status, message=None):
+        response_state['status'] = status
+
+    def send_header(self, key, value):
+        response_state['headers'].append((key, value))
+
+    def end_headers(self):
+        return None
+
+    handler.send_response = types.MethodType(send_response, handler)
+    handler.send_header = types.MethodType(send_header, handler)
+    handler.end_headers = types.MethodType(end_headers, handler)
+
+    handler_method = getattr(handler, f'do_{handler.command}', None)
+    if handler_method is None:
+        payload = json.dumps({'error': 'method not allowed'}).encode('utf-8')
+        return 405, [('Content-Type', 'application/json; charset=utf-8')], payload
+
+    handler_method()
+    return response_state['status'], response_state['headers'], handler.wfile.getvalue()
+
+
+def create_app():
+    if Flask is None or Response is None or jsonify is None or request is None:
+        return _wsgi_fallback
+
+    flask_class = cast(Any, Flask)
+    flask_response = cast(Any, Response)
+    flask_jsonify = cast(Any, jsonify)
+    flask_request = cast(Any, request)
+
+    flask_app = flask_class(__name__)
+
+    @flask_app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+    @flask_app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+    def _proxy(path):
+        if flask_request.method == 'GET' and path in ('', 'health'):
+            return flask_jsonify({'status': 'ok', 'message': 'Parking backend active'})
+
+        query_string = flask_request.query_string.decode('utf-8')
+        backend_path = _normalize_wsgi_path(path, query_string)
+        status, headers, body = _dispatch_with_request_handler(
+            flask_request.method,
+            backend_path,
+            flask_request.headers,
+            flask_request.get_data(),
+        )
+
+        response = flask_response(body, status=status)
+        for key, value in headers:
+            if key.lower() != 'content-length':
+                response.headers[key] = value
+        return response
+
+    return flask_app
+
+
+app = create_app()
+application = app
+handler = app
+
+
 if __name__ == '__main__':
     run()
-
-
-# Minimal Flask WSGI wrapper for platforms that expect a top-level `app` (e.g. Vercel)
-try:
-    from flask import Flask, request, jsonify
-
-    app = Flask(__name__)
-
-    @app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
-    @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
-    def _proxy(path):
-        # Lightweight wrapper: provide a health endpoint and a generic 501 for other routes.
-        if request.method == 'GET' and (path == '' or path == 'health'):
-            return jsonify({'status': 'ok', 'message': 'Parking backend WSGI wrapper active'})
-        # If you want full parity with the standalone server, consider routing individual endpoints here
-        return jsonify({'error': 'WSGI wrapper active; run standalone server for full functionality'}), 501
-
-except Exception:
-    # If Flask is not available, expose a minimal WSGI fallback callable named `app`
-    def _wsgi_fallback(environ, start_response):
-        status = '501 Not Implemented'
-        headers = [('Content-Type', 'application/json')]
-        start_response(status, headers)
-        return [json.dumps({'error': 'WSGI wrapper active; Flask not installed'}).encode('utf-8')]
-
-    app = _wsgi_fallback
