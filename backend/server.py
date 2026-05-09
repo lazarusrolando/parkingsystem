@@ -795,3 +795,23 @@ def run(host='0.0.0.0', port=9000):
 
 if __name__ == '__main__':
     run()
+
+
+# Minimal Flask WSGI wrapper for platforms that expect a top-level `app` (e.g. Vercel)
+try:
+    from flask import Flask, request, jsonify
+
+    app = Flask(__name__)
+
+    @app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+    @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+    def _proxy(path):
+        # Lightweight wrapper: provide a health endpoint and a generic 501 for other routes.
+        if request.method == 'GET' and (path == '' or path == 'health'):
+            return jsonify({'status': 'ok', 'message': 'Parking backend WSGI wrapper active'})
+        # If you want full parity with the standalone server, consider routing individual endpoints here
+        return jsonify({'error': 'WSGI wrapper active; run standalone server for full functionality'}), 501
+
+except Exception:
+    # If Flask is not available, ensure `app` name exists but set to None
+    app = None
