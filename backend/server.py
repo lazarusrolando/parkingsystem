@@ -12,6 +12,7 @@ from socketserver import BaseServer
 from typing import Any, cast
 from urllib.parse import urlparse
 import requests
+import db
 
 try:
     from flask import Flask, Response, jsonify, request
@@ -21,10 +22,7 @@ except ImportError:
     jsonify = None
     request = None
 
-try:
-    import ollama
-except ImportError:
-    ollama = None
+
 
 import db
 from db import get_session, create_session, delete_session
@@ -36,8 +34,7 @@ SSE_SUBSCRIBERS = []
 SSE_LOCK = threading.Lock()
 app = None
 
-OLLAMA_URL = 'http://localhost:11434/api/chat'
-DEFAULT_MODEL = os.getenv('OLLAMA_MODEL', 'qwen3.5')
+
 
 def broadcast_event(event_name, data):
     payload = f"event: {event_name}\n" + f"data: {json.dumps(data)}\n\n"
@@ -51,32 +48,7 @@ def broadcast_event(event_name, data):
 def _strip_think_tags(text):
     return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
 
-def call_ollama_agent(system_prompt_with_user_query):
-    print(f"[Smart Parking Agent] Using Ollama '{DEFAULT_MODEL}'")
-    if ollama is None:
-        print("[Smart Parking Agent] Ollama package is not installed; using fallback response")
-        return ""
-    try:
-        response = ollama.chat(
-            model=DEFAULT_MODEL,
-            messages=[{'role': 'user', 'content': system_prompt_with_user_query}],
-            options={'temperature': 0.2, 'top_p': 0.95, 'num_predict': 1024},
-            think=False
-        )
-        print(f"[Smart Parking Agent] Response received (done_reason={response.done_reason})")
-        text = response.message.content or ''
-        text = _strip_think_tags(text)
-        if not text:
-            print(f"[Smart Parking Agent] Warning: Empty response from Ollama")
-            return ""
-        print(f"[Smart Parking Agent] Ollama response length: {len(text)}")
-        return text
-    except ollama.ResponseError as e:
-        print(f"[Smart Parking Agent] Ollama ResponseError: {e}")
-        return ""
-    except Exception as e:
-        print(f"[Smart Parking Agent] Exception: {type(e).__name__}: {e}")
-        return ""
+
 
 def _read_json(rfile, length):
     raw = rfile.read(length)
@@ -785,58 +757,107 @@ class ParkingRequestHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         print("[BACKEND]", format % args)
 
+def _try_openbro_generate(system_prompt: str) -> str:
+    """Generate an answer using OpenBro's fine-tuned TinyLlama+LoRA.
+
+    OpenBro repository is expected at:
+      C:\\Users\\lazar\\Documents\\OpenBro
+
+    This function is intentionally defensive: if OpenBro can't be imported / model can't load,
+    it returns an empty string so the caller can fall back to Ollama.
+    """
+    openbro_root = os.getenv('OPENBRO_ROOT', os.path.join(os.path.dirname(__file__), '..', 'OpenBro'))
+
+
+    # Import OpenBro's inference utilities (main.py). We use sys.path injection.
+    try:
+        import sys
+        if openbro_root not in sys.path:
+            sys.path.insert(0, openbro_root)
+
+        import importlib.util
+
+        # main.py defines: load_model(), generate_stream(), etc.
+        main_py = os.path.join(openbro_root, 'main.py')
+        if not os.path.exists(main_py):
+            return ""
+
+        spec = importlib.util.spec_from_file_location('openbro_main', main_py)
+        if spec is None or spec.loader is None:
+            return ""
+
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        if not hasattr(mod, 'load_model') or not hasattr(mod, 'generate_stream'):
+            return ""
+
+        model, tokenizer = mod.load_model()
+
+        # Generation parameters (OpenBro default values are CPU-oriented).
+        max_new_tokens = int(os.getenv('OPENBRO_MAX_NEW_TOKENS', '300'))
+        temperature = float(os.getenv('OPENBRO_TEMPERATURE', '0.6'))
+        top_p = float(os.getenv('OPENBRO_TOP_P', '0.9'))
+
+        response_text = ''
+        for token in mod.generate_stream(
+            model,
+            tokenizer,
+            system_prompt,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+        ):
+            response_text += token
+
+        response_text = (response_text or '').strip()
+        return response_text
+
+    except Exception as e:
+        import traceback
+        print(f"[Chat][OpenBro] Failed: {type(e).__name__}: {e}")
+        print(traceback.format_exc())
+        return ""
+
+
 def generate_chat_answer(question):
     q = str(question).strip()
     if not q:
         return "Please ask a question about parking, bookings, slots, or account usage."
 
     parkingData = db.get_slots()
-    
-    systemPrompt = f'''You are a Smart Parking Assistant for a Smart Parking System (SPS).
 
-You help users with:
-- Checking parking availability
-- Recommending parking slots
-- Estimating cost
-- Giving directions
-- Assisting booking
+    # OpenBro expects an instruction-following / alpaca-like prompt.
+    # Keep the same constraints you already apply in the Ollama system prompt.
+    systemPrompt = (
+        "### Instruction:\n"
+        "You are a Smart Parking Assistant for a Smart Parking System (SPS).\n\n"
+        "Answer the user's input concisely.\n\n"
+        "### Input:\n"
+        f"User question: {q}\n\n"
+        "LIVE PARKING DATA:\n"
+        f"{json.dumps(parkingData)}\n\n"
+        "### Response:\n"
+        "(assistant response)"
+    )
 
-=====================
-LIVE PARKING DATA:
-{json.dumps(parkingData)}
-=====================
-
-RULES:
-- Only use the given parking data
-- Do NOT create or assume new slots
-- If no slots available, say "No parking available"
-- Keep answers short and clear (max 2 sentences)
-- Prefer recommending available slots
-- Cost = ₹20 per hour
-- Do not give technical explanations
-
-STYLE:
-- Friendly
-- Direct
-- Simple English
-
-User: {q}
-Assistant:'''
-
+    # Try OpenBro.
     try:
-        ollama_response = call_ollama_agent(systemPrompt)
-        if ollama_response and isinstance(ollama_response, str) and ollama_response.strip():
-            return ollama_response.strip()
+        openbro_response = _try_openbro_generate(systemPrompt)
+        if openbro_response:
+            openbro_response = _strip_think_tags(openbro_response)
+            return openbro_response.strip()
     except Exception as e:
-        print(f"[Chat Error] {e}")
-    
+        print(f"[Chat Error][OpenBro] {e}")
+
     return "Sorry, I couldn't generate a response right now. Try asking about parking slots, availability, or bookings."
+
 
 def run(host='0.0.0.0', port=9000):
     print(f"Starting backend at http://{host}:{port}")
-    print(f"Ollama model: {DEFAULT_MODEL}")
     
     server = ThreadingHTTPServer((host, port), ParkingRequestHandler)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
