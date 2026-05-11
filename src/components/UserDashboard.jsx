@@ -482,7 +482,7 @@ const Dashboard = () => {
             <NotificationBox />
             <div 
               className="flex items-center space-x-3 pl-4 border-l border-white/10 cursor-pointer hover:bg-white/5 rounded-xl p-2 -m-2 transition-all"
-              onClick={() => navigate('/UserDetailView')}
+              onClick={() => navigate('/Settings')}
             >
               <div className="text-right hidden sm:block">
                 <p className="font-bold text-sm text-white leading-none mb-1">{userName}</p>
