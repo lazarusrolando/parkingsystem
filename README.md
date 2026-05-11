@@ -1,7 +1,8 @@
 # Smart Parking System
 
 [![React](https://img.shields.io/badge/React-19-blue)](https://reactjs.org)
-[![Vite](https://img.shields.io/badge/Vite-7-green)](https://vitejs.dev)
+[![Vite](https://img.shields.io/badge/Vite-8-green)](https://vitejs.dev)
+
 [![Electron](https://img.shields.io/badge/Electron-40-yellow)](https://electronjs.org)
 
 A comprehensive **Smart Parking Management System** built with React 19, Vite, and Electron. Features user & admin dashboards, real-time map-based parking spot booking, digital wallet, analytics, and more.
@@ -38,9 +39,11 @@ A comprehensive **Smart Parking Management System** built with React 19, Vite, a
 ## 🛠 Tech Stack
 
 - **Frontend**: React 19, React Router 7
-- **Build**: Vite 7
+- **Build**: Vite 8
 - **Desktop**: Electron 40
+
 - **Maps**: @react-google-maps/api, @googlemaps/react-wrapper
+
 - **Charts**: Chart.js, Recharts
 - **UI**: Bootstrap 5, Tailwind CSS 4, Framer Motion, Lucide React icons
 - **Payments**: UPI, Credit/Debit forms (frontend)
@@ -63,15 +66,18 @@ npm install
 
 ```bash
 npm run dev    # Web: http://localhost:3000
+
 npm run start  # Alias for dev
 ```
+
 
 ### Electron Desktop
 
 ```bash
-npm run electron-dev  # Web + Electron
+npm run electron-dev  # Web + Electron (dev)
 npm run electron      # Production Electron
 ```
+
 
 ### Build
 
@@ -81,20 +87,28 @@ npm run build    # Web build to /build
 
 ## 📁 Project Structure
 
+> Note: file names in this repo use `.jsx` (example: `src/App.jsx`).
+
+
 ```plaintext
 src/
-├── App.js              # Main router (30+ routes)
+├── App.jsx            # Main router (30+ routes)
+
 ├── components/         # All pages/components
-│   ├── Hero.js        # Landing
-│   ├── Booking.js     # Core booking + map
-│   ├── MapView.js     # Map visualization
-│   ├── Wallet.js      # Payments
-│   ├── AdminDashboard.js
-│   ├── UserDashboard.js
-│   ├── Analytics.js
+│   ├── Hero.jsx       # Landing
+
+│   ├── Booking.jsx    # Core booking + map
+
+│   ├── MapView.jsx   # Map visualization
+
+│   ├── Wallet.jsx     # Payments
+
+│   ├── AdminDashboard.jsx
+│   ├── UserDashboard.jsx
+│   ├── Analytics.jsx
 │   └── ... (28 more)
 └── utils/
-    └── notificationUtils.js
+    └── notificationUtils.jsx
 ```
 
 ## 🌐 Deployment
@@ -125,17 +139,21 @@ python backend/server.py
 - `GET /api/bookings` - list bookings
 - `GET /api/bookings?active=true` - list active bookings
 - `GET /api/bookings?status=released` - list released bookings
-- `POST /api/book` - body `{slot_id, vehicle_number, user_id?, amount?}`
+- `POST /api/book` - body `{slot_id, amount}`
 - `POST /api/release` - body `{slot_id}`
+
 - `POST /api/create-slot` - body `{name}`
-- `POST /api/update-slot` - body `{slot_id, name?, status?, vehicle_number?, user_id?}`
+- `POST /api/update-slot` - body `{id, name?, status?}`
+
 - `POST /api/cancel-booking` - body `{booking_id}`
+
 - `POST /api/init-db` - initialize DB (same as init script)
 
 4. Client realtime event subscription:
 
 ```js
 const es = new EventSource('http://localhost:9000/api/sse');
+
 es.addEventListener('slot_updated', (e) => console.log('slot update', JSON.parse(e.data)));
 ```
 
