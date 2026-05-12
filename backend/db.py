@@ -182,12 +182,36 @@ def get_slot(slot_id):
         return dict(row) if row else None
 
 def get_bookings(active_only=True):
+    """Return bookings enriched with slot + vehicle details.
+
+    Adds UI-friendly aliases:
+    - slotid (alias of slot_id)
+    - vehiclenumber (alias of vehicle_number)
+    - vehiclename (joined from user_vehicles)
+    """
     with _get_conn() as c:
-        if active_only:
-            rows = c.execute('SELECT * FROM bookings WHERE status="active" ORDER BY booked_at DESC').fetchall()
-        else:
-            rows = c.execute('SELECT * FROM bookings ORDER BY booked_at DESC').fetchall()
-        return [dict(row) for row in rows]
+        status_filter = 'WHERE b.status="active"' if active_only else ''
+        query = f'''
+            SELECT
+                b.*, 
+                ps.name AS slot_name,
+                uv.name AS vehiclename,
+                uv.plate AS vehiclenumber
+            FROM bookings b
+            JOIN parking_slots ps ON b.slot_id = ps.id
+            LEFT JOIN user_vehicles uv ON uv.plate = b.vehicle_number
+            {status_filter}
+            ORDER BY b.booked_at DESC
+        '''
+        rows = c.execute(query).fetchall() if not active_only else c.execute(query).fetchall()
+        result = [dict(row) for row in rows]
+        # Add exact aliases expected by some clients
+        for r in result:
+            if 'slot_id' in r and 'slotid' not in r:
+                r['slotid'] = r['slot_id']
+            # Some clients expect vehiclenumber; we already provide vehiclenumber.
+        return result
+
 
 def get_bookings_by_status(status):
     with _get_conn() as c:
