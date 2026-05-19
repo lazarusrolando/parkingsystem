@@ -46,7 +46,7 @@ A comprehensive **Smart Parking Management System** built with React 19, Vite, a
 
 - **Charts**: Chart.js, Recharts
 - **UI**: Bootstrap 5, Tailwind CSS 4, Framer Motion, Lucide React icons
-- **Payments**: UPI, Credit/Debit forms (frontend)
+- **Payments**: UPI, Credit/Debit forms
 - **Other**: jsPDF, Styled Components
 
 ## 🚀 Quick Start
