@@ -167,6 +167,48 @@ REACT_APP_GOOGLE_MAPS_API_KEY=your_key
 
 - Fixed polyline accumulation in Booking/MapView (multi-selection cleanup)
 
+## 🤖 OpenBro (AI Model) / Chatbot
+
+This project includes **OpenBro**, a lightweight chatbot CLI built with a **TinyLlama** base model and **LoRA** (Low-Rank Adaptation) fine-tuning.
+
+- Location: `./OpenBro/`
+- Base model: `TinyLlama/TinyLlama-1.1B-Chat-v1.0` (configured in OpenBro)
+- Fine-tuned adapters: `./OpenBro/finetuned_tinyllama/`
+
+### Run (local)
+
+From the `OpenBro` folder, start an interactive chat session:
+
+```bash
+cd OpenBro
+python main.py chat
+```
+
+If LoRA adapters are not found/trained yet, the CLI will fall back to the base model.
+
+### Train (optional)
+
+To fine-tune the model on your dataset:
+
+```bash
+cd OpenBro
+python train.py
+```
+
+Training outputs:
+- Checkpoints: `./tinyllama/`
+- Saved LoRA adapters: `./finetuned_tinyllama/`
+
+### Dataset format
+
+OpenBro expects Alpaca-style JSONL training examples with `instruction`, `input` (optional), and `output`.
+
+Example (`data/sample.jsonl` in the OpenBro folder):
+
+```json
+{"instruction": "Translate English to French", "input": "Good morning!", "output": "Bonjour!"}
+```
+
 ## 📄 Full Documentation
 
 See [docs/](./docs/) folder for:
